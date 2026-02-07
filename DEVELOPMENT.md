@@ -50,7 +50,14 @@ python -m comick_merger.cli *.cbz -o /path/to/output.cbz
    - Affiche les conflits de manière lisible
    - Gère les erreurs proprement
 
-3. **`main.py`** - Point d'entrée pour le GUI (à implémenter)
+3. **`main.py`** - Point d'entrée pour le GUI
+   - Lance l'application PyQt6
+
+4. **`gui.py`** - Interface graphique PyQt6
+   - Drag & drop de fichiers CBZ
+   - Liste réorganisable
+   - Worker thread pour la fusion
+   - Gestion de la progression
 
 ### Gestion des Conflits
 

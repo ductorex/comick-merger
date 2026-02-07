@@ -20,8 +20,11 @@ uv sync
 # Linux/Mac
 source .venv/bin/activate
 
-# Exécuter l'application
-python main.py
+# Exécuter l'application GUI
+python -m comick_merger.main
+
+# Ou exécuter le CLI
+python -m comick_merger.cli --help
 ```
 
 ## Architecture et Fonctionnalités Clés
@@ -88,7 +91,8 @@ python -m comick_merger.cli test_cbz/*.cbz -o merged.cbz --folders
   - `CBZFile`: Represents a CBZ and its contents
   - `CBZMerger`: Handles conflict detection and merging
 - `comick_merger/cli.py` - Command-line interface
-- `comick_merger/main.py` - GUI entry point (TODO)
+- `comick_merger/main.py` - GUI entry point
+- `comick_merger/gui.py` - PyQt6 GUI implementation
 
 ## Running the GUI
 
