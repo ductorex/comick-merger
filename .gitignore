@@ -9,3 +9,8 @@ wheels/
 # Virtual environments
 .venv
 .idea
+
+# Test files
+test_cbz/
+create_test_cbz.py
+tests/test_data/

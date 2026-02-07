@@ -1,7 +1,25 @@
 [project]
 name = "comick-merger"
 version = "0.1.0"
-description = "Add your description here"
+description = "Desktop application to merge multiple CBZ (Comic Book Zip) files into one"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pyqt6>=6.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.scripts]
+comick-merger = "comick_merger.main:main"
+comick-cli = "comick_merger.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
