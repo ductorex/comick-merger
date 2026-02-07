@@ -5,7 +5,7 @@ import argparse
 from pathlib import Path
 from typing import List
 
-from .cbz_merger import CBZMerger
+from comick_merger.cbz_merger import CBZMerger
 
 
 def main():

@@ -1,7 +1,7 @@
 """Main entry point for the GUI application."""
 
 import sys
-from .gui import main as gui_main
+from comick_merger.gui import main as gui_main
 
 
 def main():

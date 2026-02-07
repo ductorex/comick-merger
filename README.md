@@ -1,110 +1,123 @@
 # Comick Merger
 
-Application desktop pour fusionner plusieurs fichiers CBZ (Comic Book Zip) en un seul.
+Application desktop pour fusionner plusieurs fichiers CBZ (Comic Book Zip) en un seul fichier, avec gestion automatique des conflits de noms.
 
-## Fonctionnalités
+## Fonctionnalites
 
-✅ **Interface graphique moderne (PyQt6)**
-- Import par drag & drop ou bouton
-- Réorganisation des fichiers par glisser-déposer
+### Interface graphique (PyQt6)
+
+- Import de fichiers CBZ par drag & drop ou via le bouton "Add Files..."
+- Reorganisation de l'ordre des fichiers par glisser-deposer dans la liste
+- Affichage intelligent des noms (ajout du dossier parent en cas de doublons)
 - Choix du fichier de sortie
-- Sélection de la méthode de résolution des conflits
+- Selection de la methode de resolution des conflits (prefixes ou dossiers)
+- Barre de progression et journal d'operations en temps reel
+- Fusion en arriere-plan (worker thread) pour garder l'interface reactive
 
-✅ **Interface en ligne de commande (CLI)**
+### Interface en ligne de commande (CLI)
+
 - Fusion rapide en une commande
-- Vérification des conflits sans fusion
+- Verification des conflits sans fusion (`--check-only`)
+- Support des deux methodes de resolution (prefixes par defaut, dossiers avec `--folders`)
 
-✅ **Gestion intelligente des conflits**
-- Détection automatique des fichiers en conflit
-- Deux méthodes de résolution :
-  - **Préfixes** : `0_image.jpg`, `1_image.jpg` (recommandé)
-  - **Dossiers** : `0/image.jpg`, `1/image.jpg`
-- Padding automatique selon le nombre de fichiers (00, 000, 0000, etc.)
+### Gestion des conflits
 
-✅ **Robuste et testé**
-- 22 tests unitaires avec pytest
-- Support jusqu'à 10 000+ fichiers CBZ
-- Validation des formats et gestion d'erreurs
+Quand plusieurs CBZ contiennent des fichiers avec le meme chemin, deux methodes de resolution sont disponibles :
+
+- **Prefixes** (par defaut) : chaque fichier est renomme avec un prefixe numerique (`0_cover.jpg`, `1_cover.jpg`)
+- **Dossiers** : chaque CBZ source est place dans un dossier numerote (`0/cover.jpg`, `1/cover.jpg`)
+
+Le padding des numeros est calcule automatiquement selon le nombre de CBZ a fusionner (ex: `00`, `01` pour 10+, `000`, `001` pour 100+, etc.).
+
+### Distribution
+
+L'application peut etre packagee en executable Windows autonome via PyInstaller. Le resultat est un dossier contenant `ComickMerger.exe` et ses dependances, distribuable sous forme de .zip.
 
 ## Installation
 
+### Depuis les sources
+
+Necessite Python 3.13+ et [uv](https://docs.astral.sh/uv/).
+
 ```bash
-# Cloner le dépôt
 git clone <url>
 cd comick-merger
-
-# Installer les dépendances avec uv (recommandé)
 uv sync
-
-# Ou avec pip
-pip install -e .
 ```
+
+### Executable Windows
+
+Telecharger le .zip depuis les releases, l'extraire, et lancer `ComickMerger.exe`.
 
 ## Utilisation
 
-### Interface Graphique (GUI)
+### Interface graphique
 
 ```bash
-# Lancer l'application GUI
 python -m comick_merger.main
-
-# Ou utilisez les scripts de lancement
-# Windows:
-run_gui.bat
-
-# Linux/Mac:
-./run_gui.sh
 ```
 
-Voir [GUI_GUIDE.md](GUI_GUIDE.md) pour le guide détaillé.
+1. Ajouter des fichiers CBZ (drag & drop ou bouton "Add Files...")
+2. Reorganiser l'ordre si necessaire
+3. Choisir le fichier de sortie via "Browse..."
+4. Selectionner la methode de resolution des conflits
+5. Cliquer sur "Merge CBZ Files"
 
-### Ligne de Commande (CLI)
+Voir [GUI_GUIDE.md](GUI_GUIDE.md) pour le guide detaille.
+
+### Ligne de commande
 
 ```bash
-# Fusionner avec préfixes (par défaut)
-python -m comick_merger.cli chapter1.cbz chapter2.cbz chapter3.cbz -o complete.cbz
+# Fusionner avec prefixes (par defaut)
+python -m comick_merger.cli chapter1.cbz chapter2.cbz -o complete.cbz
 
 # Fusionner avec dossiers
 python -m comick_merger.cli *.cbz -o complete.cbz --folders
 
-# Vérifier les conflits sans fusionner
+# Verifier les conflits sans fusionner
 python -m comick_merger.cli *.cbz --check-only
 ```
 
-## Développement
-
-Voir [DEVELOPMENT.md](DEVELOPMENT.md) et [CLAUDE.md](CLAUDE.md) pour les instructions de développement.
-
-### Tests
+## Build de l'executable
 
 ```bash
-# Générer les données de test (une seule fois)
+# Installer les dependances de dev
+uv sync --extra dev
+
+# Lancer le build PyInstaller
+uv run pyinstaller comick_merger.spec --noconfirm
+
+# Le resultat est dans dist/ComickMerger/
+```
+
+Voir [BUILD.md](BUILD.md) pour plus de details.
+
+## Developpement
+
+```bash
+# Generer les donnees de test (une seule fois)
 python tests/setup_test_data.py
 
 # Lancer les tests
 pytest tests/ -v
 
-# Avec couverture
-pytest tests/ --cov=comick_merger
+# Tests avec couverture
+pytest tests/ --cov=comick_merger --cov-report=term-missing
 ```
 
-## Résolution des Conflits
+Voir [DEVELOPMENT.md](DEVELOPMENT.md) pour l'architecture et les details techniques.
 
-Quand plusieurs CBZ contiennent des fichiers avec le même nom, deux options :
+## Structure du projet
 
-1. **Préfixes** (recommandé) : `0_cover.jpg`, `1_cover.jpg`, `2_cover.jpg`
-   - Plus compatible avec tous les lecteurs
-   - Les fichiers restent à la racine
-
-2. **Dossiers** : `0/cover.jpg`, `1/cover.jpg`, `2/cover.jpg`
-   - Plus organisé visuellement
-   - Peut nécessiter navigation manuelle dans certains lecteurs
-
-Le padding est calculé automatiquement :
-- 2-9 fichiers → `0`, `1`, ..., `9`
-- 10-99 fichiers → `00`, `01`, ..., `99`
-- 100-999 fichiers → `000`, `001`, ..., `999`
-- 1000-9999 fichiers → `0000`, `0001`, ..., `9999`
+```
+comick_merger/
+  cbz_merger.py   # Logique de fusion (CBZFile, CBZMerger)
+  cli.py           # Interface en ligne de commande
+  gui.py           # Interface graphique PyQt6
+  main.py          # Point d'entree GUI
+comick_merger.spec # Configuration PyInstaller
+tests/             # Tests unitaires
+```
 
 ## Licence
 
