@@ -97,7 +97,3 @@ class CBZMerger:
 
                         # Write to output
                         output_zip.writestr(new_path, data)
-
-        print(f"[OK] Merged {len(self.cbz_files)} CBZ files into {output_path}")
-        if conflicts:
-            print(f"  Resolved {len(conflicts)} conflicts using {'prefixes' if use_prefixes else 'folders'}")

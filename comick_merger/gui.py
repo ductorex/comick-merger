@@ -6,14 +6,14 @@ from typing import List, Optional
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QListWidget, QLabel, QFileDialog, QMessageBox,
-    QRadioButton, QButtonGroup, QProgressBar, QAbstractItemView,
-    QTextEdit, QSplitter
+    QPushButton, QListWidget, QListWidgetItem, QLabel, QFileDialog,
+    QMessageBox, QRadioButton, QButtonGroup, QProgressBar,
+    QAbstractItemView, QTextEdit, QSplitter
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 
-from .cbz_merger import CBZMerger
+from comick_merger.cbz_merger import CBZMerger
 
 
 class MergeWorker(QThread):
@@ -86,10 +86,10 @@ class CBZListWidget(QListWidget):
                     cbz_files.append(path)
 
             if cbz_files:
-                # Emit signal to parent
-                parent = self.parent()
-                if hasattr(parent, 'add_cbz_files'):
-                    parent.add_cbz_files(cbz_files)
+                # Use window() to get MainWindow regardless of reparenting
+                main_window = self.window()
+                if hasattr(main_window, 'add_cbz_files'):
+                    main_window.add_cbz_files(cbz_files)
 
             event.acceptProposedAction()
         else:
@@ -166,7 +166,6 @@ class MainWindow(QMainWindow):
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setMaximumHeight(150)
         bottom_layout.addWidget(self.log_text)
 
         splitter.addWidget(bottom_widget)
@@ -253,13 +252,30 @@ class MainWindow(QMainWindow):
             cbz_paths = [Path(f) for f in files]
             self.add_cbz_files(cbz_paths)
 
+    def _display_name(self, path: Path) -> str:
+        """Return a display name, adding parent dir if names conflict."""
+        names = [p.name for p in self.cbz_paths]
+        if names.count(path.name) > 1:
+            return f"{path.parent.name}/{path.name}"
+        return path.name
+
+    def _refresh_display_names(self):
+        """Refresh all item labels to reflect current duplicate state."""
+        for i in range(self.file_list.count()):
+            item = self.file_list.item(i)
+            path = Path(item.data(Qt.ItemDataRole.UserRole))
+            item.setText(self._display_name(path))
+
     def add_cbz_files(self, paths: List[Path]):
         """Add CBZ files to the list."""
         for path in paths:
             if path not in self.cbz_paths:
                 self.cbz_paths.append(path)
-                self.file_list.addItem(path.name)
+                item = QListWidgetItem(path.name)
+                item.setData(Qt.ItemDataRole.UserRole, str(path))
+                self.file_list.addItem(item)
                 self.log(f"Added: {path.name}")
+        self._refresh_display_names()
 
         self.update_merge_button()
 
@@ -275,6 +291,7 @@ class MainWindow(QMainWindow):
             removed_path = self.cbz_paths.pop(row)
             self.log(f"Removed: {removed_path.name}")
 
+        self._refresh_display_names()
         self.update_merge_button()
 
     def clear_all(self):
@@ -328,19 +345,17 @@ class MainWindow(QMainWindow):
         # Disable UI during merge
         self.merge_btn.setEnabled(False)
         self.add_files_btn.setEnabled(False)
+        self.remove_btn.setEnabled(False)
+        self.clear_btn.setEnabled(False)
         self.browse_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setMaximum(0)  # Indeterminate progress
 
-        # Get current order from list
+        # Get current order from list (using stored path data)
         current_paths = []
         for i in range(self.file_list.count()):
-            filename = self.file_list.item(i).text()
-            # Find corresponding path
-            for path in self.cbz_paths:
-                if path.name == filename:
-                    current_paths.append(path)
-                    break
+            path = Path(self.file_list.item(i).data(Qt.ItemDataRole.UserRole))
+            current_paths.append(path)
 
         # Start worker thread
         use_prefixes = self.prefix_radio.isChecked()
@@ -352,9 +367,11 @@ class MainWindow(QMainWindow):
     def merge_finished(self, success: bool, message: str):
         """Handle merge completion."""
         self.progress_bar.setVisible(False)
-        self.merge_btn.setEnabled(True)
         self.add_files_btn.setEnabled(True)
+        self.remove_btn.setEnabled(True)
+        self.clear_btn.setEnabled(True)
         self.browse_btn.setEnabled(True)
+        self.update_merge_button()
 
         if success:
             QMessageBox.information(self, "Success", message)
